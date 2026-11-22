@@ -12,7 +12,7 @@ brew install python ffmpeg mediainfo exiftool sleuthkit
 
 Then double-click `launch_mac.command` (if macOS blocks it, use `zsh launch_mac.command` in Terminal). It runs on **http://127.0.0.1:8765** only by default.
 
-Enter a directory of evidence clips, and optionally the **raw, bit-for-bit SD-card image**. The app autonomously runs each stage, displays progress, ranks the structural matches, and offers an evidence-free ZIP report download. **The original source files are never moved or written.**
+Enter an evidence **folder**, a **ZIP of a full card-copy directory tree**, or an **uncompressed RAW/IMG/DD sector image**, and optionally a separate raw bit-for-bit SD-card image. ZIP files are unpacked to temporary scratch for analysis and cleaned up afterward; scratch disk space must be sufficient. The app autonomously runs each stage, displays progress, ranks the structural matches, and offers an evidence-free ZIP report download. **The original source files are never moved or written.**
 
 Run from a terminal without the graphical interface:
 
@@ -36,7 +36,7 @@ python3 app.py
 4. Candidate generation: test hypotheses as **new, clearly labelled partial files**, never mutate originals. A few modified container bytes are explicitly reported.
 5. Decoder validation: real FFmpeg decoding, diagnostics, structural/decoder-based prioritization. Never conflate parsable metadata with valid image content.
 6. Timeline inventory: surrounding dates in `record/YYYYMMDD/HH/MM.mp4`, or archived ZIP; records directory evidence, not confirmed footage time.
-7. Optional sector image scan: read-only signature scan of RAW/IMG/DD physical media, anchored byte offsets, cautious bounded extraction, optional `mmls` and `fsstat`.
+7. Optional sector image scan: read-only signature scan of RAW/IMG/DD physical media, anchored byte offsets, cautious bounded extraction, optional `mmls`, `fsstat` and `fls` including deleted directory entries.
 8. Rehash sources and write final reproducibility report.
 9. Optional **explicitly consented AI review**: Gemini or OpenAI analyzes only compact technical metrics, NEVER audiovisual bytes or source paths. Not run automatically.
 
@@ -67,3 +67,5 @@ python3 -m unittest discover -s tests -v
 ```
 
 **Privacy:** `127.0.0.1` binding is intentional; do not host the web service openly on the internet. Treat the reports as sensitive if they include full filesystem paths or forensic details.
+
+**E01 / EWF / AFF4 images:** compressed forensic containers require a read-only raw stream exported by a specialist tool (e.g., `ewfexport`) before running the byte-address scanner. Do not scan compressed E01 bytes as a linear disk image.
