@@ -137,6 +137,13 @@ class Engine:
   quality=[rank_candidate(p) for p in derivatives]
   quality.sort(key=lambda x:-x.get('triage_score',0));(dest/'candidate_scores.json').write_text(json.dumps(quality,indent=2))
   j.results['candidate_count']=len(quality);j.results['candidate_decoder_passes']=sum(x.get('validation')=='decoder_pass' for x in quality)
+  if derivatives:
+   self._mark(j,'04b_decoder_experiment_matrix')
+   matrix=invoke([sys.executable,str(ROOT/'scripts/experiment_matrix.py'),str(dest/'reconstruction/derived_partial_candidates'),
+      '--out',str(dest/'experiments'),'--seconds','15'],dest/'logs/04b_experiments.log',timeout=max(210,len(derivatives)*150))
+   if matrix['returncode']==0 and (dest/'experiments/SUMMARY.json').exists():
+    j.results['experiments']=json.loads((dest/'experiments/SUMMARY.json').read_text())
+   else:j.results['experiments_error']=matrix.get('error') or 'Experiment matrix failed; check logs'
   self._mark(j,'05_surrounding_date_inventory')
   if src.is_dir() or src.suffix.lower()=='.zip':
    invoke([sys.executable,str(ROOT/'scripts/sdcard_timeline.py'),str(src),'--out',str(dest/'timeline'),
@@ -164,6 +171,7 @@ def report_md(j:Job,quality:list,opts:dict)->str:
  f'**Files:** {j.results.get("source_count")}, total bytes {j.results.get("total_source_bytes")}',
  f'**Matching structures:** {j.results.get("matches",{}).get("exact_content_matches")}',
  f'**Cross-file candidates:** {len(quality)}',
+ f'**Decoder experimental profiles:** {j.results.get("experiments",{}).get("experiment_count",0)}',
  f'**Decoder-clean candidates:** {sum(x.get("validation")=="decoder_pass" for x in quality)}',
  f'**Source hash changed:** {j.results.get("source_hash_changed",[])}','',
  '## Interpretation','',
