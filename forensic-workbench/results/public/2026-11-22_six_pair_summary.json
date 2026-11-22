@@ -1,0 +1,9 @@
+{
+  "scope": "six anonymized metadata/media pairing hypotheses",
+  "source_validation": "original Drive copies examined privately; no original physical card image",
+  "sample0_avcc_envelope_pass": 6,
+  "first_subsequent_video_sample_fail": 6,
+  "reverse_tail_runs_under_unverified_zero_gap_assumption": 0,
+  "status": "NOT authenticated footage",
+  "disclaimer": "AVCC envelope alone does not validate H264 macroblocks, recorded event, time, or cluster geometry."
+}

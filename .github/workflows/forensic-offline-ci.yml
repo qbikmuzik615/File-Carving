@@ -1,0 +1,41 @@
+name: Forensic workbench — offline synthetic tests
+on:
+  push:
+    branches: [feature/forensic-recovery-workbench]
+    paths:
+      - 'forensic-workbench/**'
+      - '.github/workflows/forensic-offline-ci.yml'
+  pull_request:
+    paths:
+      - 'forensic-workbench/**'
+      - '.github/workflows/forensic-offline-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-synthetic-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Install workbench runtime dependencies
+        run: python3 -m pip install -r forensic-workbench/requirements.txt
+      - name: Install FFmpeg for audio synthetic integration test
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Run unit tests (synthetic only)
+        env:
+          PYTHONPATH: forensic-workbench
+        run: python3 -m unittest discover -s forensic-workbench/tests -p 'test_*.py' -v
+      - name: Compile forensic scripts and app
+        run: python3 -m py_compile forensic-workbench/scripts/staircase_overlap.py forensic-workbench/scripts/wyze_bidirectional_audit.py forensic-workbench/app.py
+      - name: Ensure no original media was committed to workbench
+        run: |
+          if git ls-files forensic-workbench | grep -Ei '\.(mp4|m4v|mov|h264|264|wav|mp3|img|dd|e01|raw|dmg)$'; then
+            echo 'ERROR: original evidence media detected in public workbench'
+            exit 1
+          fi

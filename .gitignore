@@ -1,0 +1,25 @@
+# Prevent accidental addition of sensitive evidence to the PUBLIC repository.
+**/evidence-vault/
+**/private-evidence/
+**/case-files/
+**/originals/
+**/raw-card-images/
+**/.env
+**/*.pem
+**/*.key
+**/*.p12
+**/*.mp4
+**/*.m4v
+**/*.mov
+**/*.wav
+**/*.h264
+**/*.264
+**/*.img
+**/*.dd
+**/*.E01
+**/*.raw
+**/*.dmg
+**/*.jsonl
+!forensic-workbench/agents/turn-log.jsonl
+**/__pycache__/
+**/*.pyc
