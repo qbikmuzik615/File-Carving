@@ -72,3 +72,17 @@ python3 -m unittest discover -s tests -v
 ## GitHub cross-agent review (v0.3.1)
 
 `/api/collaboration` and the local UI show latest PUBLIC-SAFE agent handoffs, review task status, and whether Gemini/Claude are actually configured. GitHub receives redacted code, findings and synthetic tests; original surveillance media stays in an access-controlled private vault. Agent task files live at `agents/tasks/` because repository Issues are currently disabled. To publish one reviewed and redacted turn, use `scripts/log_agent_turn.py` with `--publish --public-safe-confirmed` in an authenticated git checkout; a chat conversation by itself does not automatically push commits.
+
+## Recovery project mission and source of truth
+
+The objective is **source-authenticated restoration of real historical surveillance video and speech**, with all originals in a separate private vault. Before contributing, read the [Project Charter](docs/PROJECT_CHARTER.md), [Master Agent Prompt](docs/MASTER_AGENT_PROMPT.md), [Comprehensive Recovery Report](docs/RECOVERY_MASTER_REPORT_2026-11-22.md), [Roadmap](docs/ROADMAP.md), [Audio Forensic SOP](docs/AUDIO_FORENSIC_PROTOCOL.md), [Video Recovery SOP](docs/VIDEO_RECOVERY_PROTOCOL.md), [GitHub automation](docs/MULTI_AGENT_AUTOMATION.md), and [Research registry](research/TOOLS_AND_SCIENCE.md). Source evidence does not go in this public repository.
+
+Run the read-only audio workflow against an authorized local working COPY only:
+
+```bash
+python3 scripts/audio_triage.py /private/source/clip.mp4 --output /private/report/job_001 --label ring_priority --dsp --spectrogram
+```
+
+This tool creates a separate original AAC packet copy (not a source-file copy), PCM float reference, gentle filter derivatives, spectrogram and private JSON report. No model creates or verifies words. See [Audio Triage Tool](docs/AUDIO_TRIAGE_TOOL.md).
+
+**Automation:** public offline CI on feature updates; weekly GitHub research radar on the default branch, without model usage. See [latest public research snapshots](https://github.com/qbikmuzik615/File-Carving/tree/master/forensic-workbench/research/radar). Model-to-model continuous exchange requires each app's GitHub integration or a separately configured agent runner. `agents/HANDOFF.md` and `agents/turn-log.jsonl` are the persistence mechanism; no secret inference is triggered by a commit.
