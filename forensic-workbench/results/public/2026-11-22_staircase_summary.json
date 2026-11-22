@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "scope": "anonymized 34-file recovered-media group",
+  "status": "source-byte test reproduced",
+  "files": 34,
+  "total_exported_bytes": 14942368,
+  "alignment_16384_count_first_33": 33,
+  "alignment_32768_count_first_33": 19,
+  "last_file_bytes": 160,
+  "last_file_standard_mp4_header": false,
+  "adjacent_pairs_tested": 33,
+  "exact_suffix_pairs_16384": 0,
+  "exact_suffix_pairs_32768": 0,
+  "aligned_512_byte_duplicate_blocks": 0,
+  "terminal_160_byte_full_occurrences_in_other_files": 0,
+  "notes": [
+    "Observed quantization does not establish FAT32 geometry.",
+    "No exact adjacent-overlap does not rule out other fragment displacement.",
+    "Source paths, hashes and Drive links withheld from public repository."
+  ]
+}
