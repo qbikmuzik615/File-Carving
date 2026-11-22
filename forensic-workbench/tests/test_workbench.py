@@ -16,6 +16,13 @@ class WorkbenchTests(unittest.TestCase):
    hits=list(scan(p))
    self.assertEqual(hits[0]['offset'],512)
    self.assertEqual(hits[0]['type'],'ftyp')
+ def test_cross_file_scanning_deterministic(self):
+  from scripts.crossfile_reconstructor import scan_one
+  root=Path('/mnt/data/wyze_0820_0840_source_links/30.mp4')
+  if not root.exists():return
+  record=scan_one(root)
+  self.assertTrue(any(z.get('ftyp_offset')==540160 for z in record['mdat']))
+
  def test_opt_in_is_mandatory(self):
   with self.assertRaises(PermissionError):review(Path('.'),explicit_consent=False)
  def test_real_e2e_empty_and_corrupt_file(self):
