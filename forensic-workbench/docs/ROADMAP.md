@@ -36,9 +36,9 @@
 - [ ] Gemini independent data/codec review completed.
 - [ ] Claude independent code and DSP-benchmark validation completed.
 - [ ] Perplexity literature review with source links completed.
-- [ ] Research radar scheduled from GitHub default branch; no paid inference required.
+- [x] Research radar scheduled from GitHub default branch; no paid inference required. First 15/15 public metadata snapshot committed successfully.
 - [ ] Dedicated private evidence vault provisioned and verified for write access.
-- [ ] Implement a private `evidence-import` flow with offline manifests/hashes.
+- [ ] Implement a private `evidence-import` flow with offline manifests/hashes. Initial private Ring pilot source variants already hashed and stored in a local working vault.
 - [ ] Documented human review with versioned signed report.
 
 ## Priorities and exit gates
