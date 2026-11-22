@@ -23,6 +23,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+      - name: Install workbench runtime dependencies
+        run: python3 -m pip install -r forensic-workbench/requirements.txt
       - name: Run unit tests (synthetic only)
         env:
           PYTHONPATH: forensic-workbench
