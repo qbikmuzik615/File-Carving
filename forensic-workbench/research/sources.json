@@ -1,0 +1,141 @@
+{
+  "schema_version": "2026-11-22",
+  "basis": "public-source project registry for non-executing monitoring; not model quality ranking",
+  "repositories": [
+    {
+      "domain": "video",
+      "repo": "ponchio/untrunc",
+      "role": "MP4 repair using reference",
+      "source_url": "https://github.com/ponchio/untrunc",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    },
+    {
+      "domain": "video",
+      "repo": "ntrnghia/recover-mp4",
+      "role": "rebuild missing moov via mdat H264/AAC parsing",
+      "source_url": "https://github.com/ntrnghia/recover-mp4",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    },
+    {
+      "domain": "video",
+      "repo": "zetlen/basinski",
+      "role": "new codec/header recovery tool; independently verify maturity",
+      "source_url": "https://github.com/zetlen/basinski",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    },
+    {
+      "domain": "video",
+      "repo": "repairmyvideo/mp4inspect",
+      "role": "read-only MP4 structure/NAL diagnostics",
+      "source_url": "https://github.com/repairmyvideo/mp4inspect",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    },
+    {
+      "domain": "video",
+      "repo": "thatsabbas/corrupted-video-recovery",
+      "role": "safety-first recovery scripts and documentation",
+      "source_url": "https://github.com/thatsabbas/corrupted-video-recovery",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    },
+    {
+      "domain": "video",
+      "repo": "sleuthkit/sleuthkit",
+      "role": "FAT/forensic filesystem analysis",
+      "source_url": "https://github.com/sleuthkit/sleuthkit",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    },
+    {
+      "domain": "audio",
+      "repo": "Rikorose/DeepFilterNet",
+      "role": "DeepFilterNet3 realtime deep filtering",
+      "source_url": "https://github.com/Rikorose/DeepFilterNet",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    },
+    {
+      "domain": "audio",
+      "repo": "yxlu-0102/MP-SENet",
+      "role": "parallel magnitude and phase speech enhancement",
+      "source_url": "https://github.com/yxlu-0102/MP-SENet",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    },
+    {
+      "domain": "audio",
+      "repo": "RoyChao19477/SEMamba",
+      "role": "speech enhancement with Mamba",
+      "source_url": "https://github.com/RoyChao19477/SEMamba",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    },
+    {
+      "domain": "audio",
+      "repo": "MyParadise21/Mamba-SEUNet",
+      "role": "Mamba-U-Net speech enhancement 2025",
+      "source_url": "https://github.com/MyParadise21/Mamba-SEUNet",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    },
+    {
+      "domain": "audio",
+      "repo": "Xiaobin-Rong/gtcrn",
+      "role": "low resource speech enhancement",
+      "source_url": "https://github.com/Xiaobin-Rong/gtcrn",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    },
+    {
+      "domain": "audio",
+      "repo": "modelscope/ClearerVoice-Studio",
+      "role": "MossFormer2 and FRCRN speech enhancement and separation",
+      "source_url": "https://github.com/modelscope/ClearerVoice-Studio",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    },
+    {
+      "domain": "audio",
+      "repo": "facebookresearch/demucs",
+      "role": "music/voice separation experimental; not forensic auth",
+      "source_url": "https://github.com/facebookresearch/demucs",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    },
+    {
+      "domain": "audio",
+      "repo": "speechbrain/speechbrain",
+      "role": "speech separation and enhancement recipes",
+      "source_url": "https://github.com/speechbrain/speechbrain",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    },
+    {
+      "domain": "audio",
+      "repo": "pyannote/pyannote-audio",
+      "role": "diarization hypotheses; not speaker identity evidence",
+      "source_url": "https://github.com/pyannote/pyannote-audio",
+      "verified_context": "candidate to evaluate, not benchmarked on private case source",
+      "license_status": "verify at pinned commit",
+      "model_weights_status": "verify when testing"
+    }
+  ]
+}
