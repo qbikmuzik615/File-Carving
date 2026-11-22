@@ -37,6 +37,8 @@ def scan(p:Path,limit=100000,step=4<<20):
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('image');p.add_argument('--out',required=True);p.add_argument('--limit',type=int,default=1000);p.add_argument('--extract',action='store_true');p.add_argument('--max-bytes-per-carve',type=int,default=16*1024*1024)
  a=p.parse_args();image=Path(a.image).resolve(strict=True);out=Path(a.out).resolve()
+ if image.suffix.lower() in ('.e01','.ex01','.aff','.aff4'):
+  p.error('Compressed forensic image container: first export/mount a read-only RAW/DD stream (e.g. ewfexport)')
  if out==image or image in out.parents: p.error('Output path must differ from image')
  out.mkdir(parents=True,exist_ok=True)
  fullhash=digest(image)
@@ -68,6 +70,12 @@ def main():
  if shutil.which('mmls'):
   q=subprocess.run(['mmls',str(image)],capture_output=True,text=True,timeout=45)
   (out/'mmls_partition_map.txt').write_text(q.stdout+'\n'+q.stderr)
+ if shutil.which('fls'):
+  for flag,filename in [(['-r','-p'],'fls_all_entries.txt'),(['-r','-d','-p'],'fls_deleted_entries.txt')]:
+   try:
+    q=subprocess.run(['fls',*flag,str(image)],capture_output=True,text=True,timeout=120)
+    (out/filename).write_text(q.stdout+'\n'+q.stderr)
+   except subprocess.TimeoutExpired:(out/filename).write_text('fls timed out')
  if shutil.which('fsstat'):
   q=subprocess.run(['fsstat',str(image)],capture_output=True,text=True,timeout=45)
   (out/'fsstat_filesystem.txt').write_text(q.stdout+'\n'+q.stderr)
