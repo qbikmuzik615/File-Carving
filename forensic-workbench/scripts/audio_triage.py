@@ -41,14 +41,14 @@ def call_ffmpeg(args, commands, outputs, *, input_file):
     outputs.append({"name":dest.name,"size":dest.stat().st_size,"sha256":sha256(dest)})
 
 def run(source, output, *, dsp=False, spectrogram=False, label="audio"):
-    if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
-        raise EnvironmentError("FFmpeg and FFprobe are required")
     src=Path(source).expanduser().resolve(strict=True)
     if not src.is_file():
         raise ValueError("Expected a regular source file")
     out=Path(output).expanduser().resolve()
     if out==src.parent or out in src.parents or out==src:
         raise ValueError("Output must be separate from the original file directory")
+    if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
+        raise EnvironmentError("FFmpeg and FFprobe are required")
     if out.exists() and any(out.iterdir()):
         raise FileExistsError("Use a new EMPTY analysis folder; no overwriting results")
     out.mkdir(parents=True,exist_ok=True)
