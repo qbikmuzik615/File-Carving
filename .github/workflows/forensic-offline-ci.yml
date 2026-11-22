@@ -17,13 +17,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Run unit tests (synthetic only)
+        env:
+          PYTHONPATH: forensic-workbench
         run: python3 -m unittest discover -s forensic-workbench/tests -p 'test_*.py' -v
       - name: Compile forensic scripts
         run: python3 -m py_compile forensic-workbench/scripts/staircase_overlap.py
