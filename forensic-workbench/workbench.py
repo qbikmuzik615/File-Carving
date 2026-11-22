@@ -5,7 +5,7 @@ Source evidence is never written, opened for modification or committed to a repo
 This tool does not infer footage which is not present in source bytes.
 """
 from __future__ import annotations
-import argparse, csv, hashlib, json, os, re, shutil, subprocess, sys, threading, time
+import argparse, csv, hashlib, json, os, re, shutil, subprocess, sys, threading, time, tempfile, zipfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,6 +13,7 @@ from typing import Callable
 
 ROOT=Path(__file__).resolve().parent
 EXTENSIONS={'.mp4','.mov','.m4v','.h264','.264','.avi','.mts','.m2ts','.mkv'}
+RAW_IMAGE_EXTENSIONS={'.img','.dd','.raw'}
 TIMEOUT=210
 
 def now():return datetime.now(timezone.utc).isoformat()
@@ -32,8 +33,33 @@ def invoke(argv:list[str],stdout_path:Path,timeout=TIMEOUT)->dict:
   return {'argv':argv,'returncode':None,'error':str(e),'log':stdout_path.name}
 
 def sources(path:Path):
- if path.is_file():return [path]
+ if path.is_file():return [path] if path.suffix.lower() in EXTENSIONS else []
  return sorted(f for f in path.rglob('*') if f.is_file() and f.suffix.lower() in EXTENSIONS)
+
+def extract_zip_media(archive:Path,temporary:Path):
+ """Extract only media inputs to ephemeral scratch, with archive-relative provenance.
+
+ Reject traversal, duplicate paths and unreasonable decompression. The original ZIP is
+ never opened for writing. Extracted scratch material is automatically removed.
+ """
+ names=set();total=0
+ with zipfile.ZipFile(archive,'r') as z:
+  infos=[i for i in z.infolist() if not i.is_dir() and Path(i.filename).suffix.lower() in (EXTENSIONS | RAW_IMAGE_EXTENSIONS)]
+  if len(infos)>200000:raise ValueError('ZIP exceeds 200,000 candidate media files')
+  for i in infos:
+   pp=Path(i.filename.replace('\\','/'))
+   if pp.is_absolute() or '..' in pp.parts or not pp.parts or str(pp) in names:
+    raise ValueError('Unsafe or duplicate archive media path: '+i.filename)
+   names.add(str(pp));total+=i.file_size
+  if total>128*1024**3:raise ValueError('ZIP media total exceeds 128 GiB')
+  if total > shutil.disk_usage(temporary).free*0.88:
+   raise ValueError('Not enough scratch disk to examine this ZIP; provide the unarchived card folder or more disk space')
+  for i in infos:
+   relative=Path(i.filename.replace('\\','/'))
+   dest=temporary/relative;dest.parent.mkdir(parents=True,exist_ok=True)
+   with z.open(i,'r') as src,dest.open('xb') as out:shutil.copyfileobj(src,out,length=4*1024*1024)
+ return {'archive_files':len(infos),'archive_media_bytes':total,'archive_sha256':sha256(archive),
+         'scratch_copies_are_not_originals':True,'original_archive_path':str(archive)}
 
 def parse_datetime(label:str):
  try:return datetime.strptime(label,'%Y-%m-%d')
@@ -83,7 +109,7 @@ class Job:
  def view(self):return vars(self).copy()
 
 class Engine:
- def __init__(self):self.jobs:dict[str,Job]={};self.lock=threading.Lock()
+ def __init__(self):self.jobs:dict[str,Job]={};self.lock=threading.Lock();self._scratch:dict[str,Path]={}
  def create(self,source:str,output:str,target_date='2022-06-21',before=30,after=30,disk_image=None,extract=True):
   s=Path(source).expanduser().resolve(strict=True)
   if not (s.is_file() or s.is_dir()):raise ValueError('Source must be file or directory')
@@ -107,43 +133,63 @@ class Engine:
    j.status='failed';j.error=f'{type(e).__name__}: {e}';j.finished=now()
    try:(Path(j.output)/'job_state.json').write_text(json.dumps(j.view(),indent=2,default=str))
    except Exception:pass
+  finally:
+   temp=self._scratch.pop(j.id,None)
+   if temp:shutil.rmtree(temp,ignore_errors=True)
  def _mark(self,j,name,details=None):
   j.step=name;j.history.append({'time_utc':now(),'stage':name,'details':details or {}})
   (Path(j.output)/'job_state.json').write_text(json.dumps(j.view(),indent=2,default=str))
  def _analyze(self,j:Job,o:dict):
   j.started=now();j.status='running';dest=Path(j.output);dest.mkdir(parents=True,exist_ok=False)
-  src=Path(j.source);files=sources(src)
+  src=Path(j.source);working=src
+  if src.is_file() and src.suffix.lower()=='.zip':
+   self._mark(j,'00_archive_unpack_readonly')
+   temporary=Path(tempfile.mkdtemp(prefix='forensic_workbench_'));self._scratch[j.id]=temporary
+   archive_info=extract_zip_media(src,temporary);j.results['archive']=archive_info;working=temporary
+  elif src.is_file() and src.suffix.lower() in RAW_IMAGE_EXTENSIONS:
+   if not o['disk_image']:o['disk_image']=str(src)
+   working=Path(tempfile.mkdtemp(prefix='forensic_workbench_empty_'));self._scratch[j.id]=working
+  if src.is_file() and src.suffix.lower()=='.zip' and not o['disk_image']:
+   embedded_images=sorted(f for f in working.rglob('*') if f.is_file() and f.suffix.lower() in RAW_IMAGE_EXTENSIONS)
+   if len(embedded_images)==1:o['disk_image']=str(embedded_images[0])
+   elif len(embedded_images)>1:j.results['archive_multiple_images_need_selection']=len(embedded_images)
+  files=sources(working)
   self._mark(j,'01_acquisition_manifest',{'number_of_source_files':len(files)})
-  if not files:raise ValueError('No supported media files found')
+  if not files and not o['disk_image']:raise ValueError('No supported media files found; provide a directory, ZIP or uncompressed RAW/IMG/DD image')
   evidence=[]
   for f in files:
-   st=f.stat(); evidence.append({'source_path':str(f),'path_relative_to_source':str(f.relative_to(src)) if src.is_dir() else f.name,
+   st=f.stat(); evidence.append({'source_path':str(f),'path_relative_to_source':str(f.relative_to(working)) if working.is_dir() else f.name,
      'sha256':sha256(f),'bytes':st.st_size,'filesystem_mtime_utc':datetime.fromtimestamp(st.st_mtime,timezone.utc).isoformat(),
      'filesystem_mtime_is_not_camera_recording_time':True})
   (dest/'source_manifest.json').write_text(json.dumps({'created_utc':now(),'originals_read_only':True,'files':evidence},indent=2))
   j.results['source_count']=len(files);j.results['total_source_bytes']=sum(x['bytes'] for x in evidence)
   (dest/'logs').mkdir()
-  self._mark(j,'02_full_binary_metadata')
-  r=invoke([sys.executable,str(ROOT/'scripts/forensic_metadata.py'),str(src),'--out',str(dest/'metadata')],dest/'logs/02_metadata.log',timeout=max(210,len(files)*25))
-  if r['returncode']!=0:raise RuntimeError('Metadata stage failed; inspect '+r['log'])
-  self._mark(j,'03_moov_mdat_cross_matching')
-  cmd=[sys.executable,str(ROOT/'scripts/crossfile_reconstructor.py'),str(src),'--out',str(dest/'reconstruction')]
-  if o['extract']:cmd.append('--extract')
-  r=invoke(cmd,dest/'logs/03_crossmatching.log',timeout=max(210,len(files)*25))
-  if r['returncode']!=0:raise RuntimeError('Cross-file stage failed; inspect '+r['log'])
-  summary=json.loads((dest/'reconstruction/SUMMARY.json').read_text());j.results['matches']=summary
-  self._mark(j,'04_candidate_decoder_validation')
-  derivatives=sorted((dest/'reconstruction/derived_partial_candidates').glob('*.mp4')) if (dest/'reconstruction/derived_partial_candidates').exists() else []
-  quality=[rank_candidate(p) for p in derivatives]
-  quality.sort(key=lambda x:-x.get('triage_score',0));(dest/'candidate_scores.json').write_text(json.dumps(quality,indent=2))
-  j.results['candidate_count']=len(quality);j.results['candidate_decoder_passes']=sum(x.get('validation')=='decoder_pass' for x in quality)
-  if derivatives:
-   self._mark(j,'04b_decoder_experiment_matrix')
-   matrix=invoke([sys.executable,str(ROOT/'scripts/experiment_matrix.py'),str(dest/'reconstruction/derived_partial_candidates'),
-      '--out',str(dest/'experiments'),'--seconds','15'],dest/'logs/04b_experiments.log',timeout=max(210,len(derivatives)*150))
-   if matrix['returncode']==0 and (dest/'experiments/SUMMARY.json').exists():
-    j.results['experiments']=json.loads((dest/'experiments/SUMMARY.json').read_text())
-   else:j.results['experiments_error']=matrix.get('error') or 'Experiment matrix failed; check logs'
+  if files:
+   self._mark(j,'02_full_binary_metadata')
+   r=invoke([sys.executable,str(ROOT/'scripts/forensic_metadata.py'),str(working),'--out',str(dest/'metadata')],dest/'logs/02_metadata.log',timeout=max(210,len(files)*25))
+   if r['returncode']!=0:raise RuntimeError('Metadata stage failed; inspect '+r['log'])
+   self._mark(j,'03_moov_mdat_cross_matching')
+   cmd=[sys.executable,str(ROOT/'scripts/crossfile_reconstructor.py'),str(working),'--out',str(dest/'reconstruction')]
+   if o['extract']:cmd.append('--extract')
+   r=invoke(cmd,dest/'logs/03_crossmatching.log',timeout=max(210,len(files)*25))
+   if r['returncode']!=0:raise RuntimeError('Cross-file stage failed; inspect '+r['log'])
+   summary=json.loads((dest/'reconstruction/SUMMARY.json').read_text());j.results['matches']=summary
+   self._mark(j,'04_candidate_decoder_validation')
+   derivatives=sorted((dest/'reconstruction/derived_partial_candidates').glob('*.mp4')) if (dest/'reconstruction/derived_partial_candidates').exists() else []
+   quality=[rank_candidate(p) for p in derivatives]
+   quality.sort(key=lambda x:-x.get('triage_score',0));(dest/'candidate_scores.json').write_text(json.dumps(quality,indent=2))
+   j.results['candidate_count']=len(quality);j.results['candidate_decoder_passes']=sum(x.get('validation')=='decoder_pass' for x in quality)
+   if derivatives:
+    self._mark(j,'04b_decoder_experiment_matrix')
+    matrix=invoke([sys.executable,str(ROOT/'scripts/experiment_matrix.py'),str(dest/'reconstruction/derived_partial_candidates'),
+       '--out',str(dest/'experiments'),'--seconds','15'],dest/'logs/04b_experiments.log',timeout=max(210,len(derivatives)*150))
+    if matrix['returncode']==0 and (dest/'experiments/SUMMARY.json').exists():
+     j.results['experiments']=json.loads((dest/'experiments/SUMMARY.json').read_text())
+    else:j.results['experiments_error']=matrix.get('error') or 'Experiment matrix failed; check logs'
+  else:
+   quality=[];j.results['matches']={'exact_content_matches':0,'reason':'Raw image only, no extracted video files supplied'}
+   j.results['candidate_count']=0;j.results['candidate_decoder_passes']=0
+   (dest/'candidate_scores.json').write_text('[]')
   self._mark(j,'05_surrounding_date_inventory')
   if src.is_dir() or src.suffix.lower()=='.zip':
    invoke([sys.executable,str(ROOT/'scripts/sdcard_timeline.py'),str(src),'--out',str(dest/'timeline'),
@@ -152,12 +198,17 @@ class Engine:
    if timeline_path.exists():j.results['timeline']=json.loads(timeline_path.read_text())
   if o['disk_image']:
    self._mark(j,'06_sector_image_signature_carving')
-   invoke([sys.executable,str(ROOT/'scripts/image_scan.py'),o['disk_image'],'--out',str(dest/'image_scan'),
+   image_call=invoke([sys.executable,str(ROOT/'scripts/image_scan.py'),o['disk_image'],'--out',str(dest/'image_scan'),
        '--extract','--limit',str(40)],dest/'logs/06_image_scan.log',timeout=2400)
+   if image_call['returncode']!=0:raise RuntimeError('Raw image scan failed; inspect logs/06_image_scan.log')
    summary_image=dest/'image_scan/summary.json'
    if summary_image.exists():j.results['image']=json.loads(summary_image.read_text())
   self._mark(j,'07_source_integrity_recheck')
   changes=[str(f) for f,rec in zip(files,evidence) if sha256(f)!=rec['sha256']]
+  if 'archive' in j.results and sha256(src)!=j.results['archive']['archive_sha256']:
+   changes.append(str(src)+' (ZIP archive changed)')
+  if o['disk_image'] and 'image' in j.results and sha256(Path(o['disk_image']))!=j.results['image']['image_sha256']:
+   changes.append(str(o['disk_image'])+' (raw SD image changed)')
   j.results['source_hash_changed']=changes
   if changes:raise RuntimeError('Source changed while analysis was running: '+str(changes))
   self._mark(j,'08_report_generation')
@@ -189,7 +240,7 @@ def report_md(j:Job,quality:list,opts:dict)->str:
 
 def main():
  a=argparse.ArgumentParser(description=__doc__)
- a.add_argument('--source',required=True,help='Read-only evidence directory, MP4 file or ZIP for timeline (use directory for media)')
+ a.add_argument('--source',required=True,help='Read-only media directory, source ZIP, MP4 file, or RAW/IMG/DD sector image')
  a.add_argument('--output',default=str(Path.home()/'ForensicWorkbenchReports'))
  a.add_argument('--disk-image',help='Optional RAW/DD/IMG sector image. SHA and scan; no writes')
  a.add_argument('--target-date',default='2022-06-21');a.add_argument('--days-before',type=int,default=30);a.add_argument('--days-after',type=int,default=30)
