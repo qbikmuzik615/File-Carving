@@ -1,0 +1,28 @@
+name: Recovery Diagnostics Synthetic Tests
+on:
+  pull_request:
+    paths:
+      - 'forensic-workbench/scripts/phase_invariant_audit.py'
+      - 'forensic-workbench/scripts/idr_probe.py'
+      - 'forensic-workbench/tests/**'
+      - '.github/workflows/recovery-diagnostics-tests.yml'
+  push:
+    paths:
+      - 'forensic-workbench/scripts/phase_invariant_audit.py'
+      - 'forensic-workbench/scripts/idr_probe.py'
+      - 'forensic-workbench/tests/**'
+      - '.github/workflows/recovery-diagnostics-tests.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository without persistent credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Run no-network, source-independent test cases
+        run: |
+          python3 -m unittest discover -s forensic-workbench/tests -p 'test_*.py' -v
