@@ -4,6 +4,7 @@ on:
     - cron: '37 10 * * 1'
   workflow_dispatch:
   push:
+    branches: [master]
     paths:
       - '.github/workflows/forensic-research-weekly.yml'
       - 'forensic-workbench/scripts/research_radar.py'
@@ -15,6 +16,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   snapshot:
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
