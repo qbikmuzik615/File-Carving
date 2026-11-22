@@ -24,3 +24,6 @@ Original SD geometry; recording times solely from recovered folder names; proven
     python3 -m unittest discover -s forensic-workbench/tests -p 'test_*.py' -v
 
 Machine outputs with original source filenames, hashes or full paths go to the private evidence vault, not the public repository.
+
+## Collaboration update
+GitHub deterministic CI passed on the published code (runs 45014810068 and 45014904782). Public agent entrypoints and pending task files are committed; GitHub Issues currently disabled. `GET /api/collaboration` reports agent configuration without implying Gemini/Claude are running. An access-controlled local 46-file evidence ZIP exists separately; not stored on public GitHub.

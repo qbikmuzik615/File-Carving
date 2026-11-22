@@ -69,3 +69,6 @@ python3 -m unittest discover -s tests -v
 **Privacy:** `127.0.0.1` binding is intentional; do not host the web service openly on the internet. Treat the reports as sensitive if they include full filesystem paths or forensic details.
 
 **E01 / EWF / AFF4 images:** compressed forensic containers require a read-only raw stream exported by a specialist tool (e.g., `ewfexport`) before running the byte-address scanner. Do not scan compressed E01 bytes as a linear disk image.
+## GitHub cross-agent review (v0.3.1)
+
+`/api/collaboration` and the local UI show latest PUBLIC-SAFE agent handoffs, review task status, and whether Gemini/Claude are actually configured. GitHub receives redacted code, findings and synthetic tests; original surveillance media stays in an access-controlled private vault. Agent task files live at `agents/tasks/` because repository Issues are currently disabled. To publish one reviewed and redacted turn, use `scripts/log_agent_turn.py` with `--publish --public-safe-confirmed` in an authenticated git checkout; a chat conversation by itself does not automatically push commits.

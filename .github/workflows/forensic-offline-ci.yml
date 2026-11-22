@@ -29,5 +29,12 @@ jobs:
         env:
           PYTHONPATH: forensic-workbench
         run: python3 -m unittest discover -s forensic-workbench/tests -p 'test_*.py' -v
-      - name: Compile forensic scripts
-        run: python3 -m py_compile forensic-workbench/scripts/staircase_overlap.py
+      - name: Compile forensic scripts and app
+        run: python3 -m py_compile forensic-workbench/scripts/staircase_overlap.py forensic-workbench/scripts/wyze_bidirectional_audit.py forensic-workbench/app.py
+      - name: Ensure no original media was committed to workbench
+        run: |
+          if git ls-files forensic-workbench | grep -Ei '\.(mp4|m4v|mov|h264|264|wav|mp3|img|dd|e01|raw|dmg)
+; then
+            echo 'ERROR: original evidence media detected in public workbench'
+            exit 1
+          fi

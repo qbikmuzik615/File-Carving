@@ -10,7 +10,7 @@ from pydantic import BaseModel,Field
 from workbench import Engine
 from ai_triage import review
 
-app=FastAPI(title='Forensic Recovery Workbench',version='0.2.0',docs_url='/api/docs')
+app=FastAPI(title='Forensic Recovery Workbench',version='0.3.1',docs_url='/api/docs')
 ENGINE=Engine()
 REPORTS=Path(os.getenv('FORENSIC_REPORTS',str(Path.home()/'ForensicWorkbenchReports'))).expanduser().resolve()
 REPORTS.mkdir(parents=True,exist_ok=True)
@@ -43,6 +43,33 @@ def page():return (Path(__file__).parent/'static/index.html').read_text(encoding
 def status():return {'status':'ready','reports_root':str(REPORTS),'local_only':True,
  'tools':{a:bool(__import__('shutil').which(a)) for a in ('ffmpeg','ffprobe','mediainfo','mediaconch','exiftool','mp4dump','MP4Box','mmls','fsstat','photorec')},
  'ai_key_available':{'gemini':bool(os.getenv('GEMINI_API_KEY')),'openai':bool(os.getenv('OPENAI_API_KEY'))}}
+
+@app.get('/api/collaboration')
+def collaboration():
+    """Public-safe local agent handoffs. No source evidence or API tokens."""
+    log_path=Path(__file__).parent/'agents'/'turn-log.jsonl'
+    entries=[]
+    if log_path.is_file():
+        for raw in log_path.read_text(encoding='utf8').splitlines()[-12:]:
+            try:
+                item=json.loads(raw)
+                entries.append({k:item.get(k) for k in
+                    ('turn_id','agent','utc','status','summary','tests','next_actions')})
+            except (ValueError,TypeError):
+                continue
+    return {
+        'repository':'https://github.com/qbikmuzik615/File-Carving',
+        'branch':'feature/forensic-recovery-workbench',
+        'evidence_policy':'PRIVATE_LOCAL_OR_DEDICATED_PRIVATE_REPO',
+        'agent_connections':{
+            'ChatGPT':'manual GitHub connector; no automatic per-turn hook',
+            'Gemini':'not configured; task prepared',
+            'Claude':'not configured; task prepared'
+        },
+        'task_files':['agents/tasks/GEMINI.md','agents/tasks/CLAUDE.md',
+                      'agents/tasks/PRIVATE-EVIDENCE.md'],
+        'recent_handoffs':entries
+    }
 
 @app.post('/api/runs')
 def create(p:StartRequest):
