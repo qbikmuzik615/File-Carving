@@ -104,7 +104,7 @@ def scan_one(p,max_hits=300):
  if not p.stat().st_size:return found
  with p.open('rb') as f,mmap.mmap(f.fileno(),0,access=mmap.ACCESS_READ) as mm:
   length=len(mm)
-  for name in ROOTTYPES:
+  for name in (b'ftyp', b'moov', b'mdat'):  # deterministic: collect ftyp anchors before mdat evidence
    pos=0;count=0
    while count<max_hits:
     at=mm.find(name,pos)
