@@ -1,4 +1,4 @@
-import hashlib, json, subprocess, sys, tempfile, time, unittest
+import hashlib, json, struct, subprocess, sys, tempfile, time, unittest, zipfile
 from pathlib import Path
 from workbench import Engine, sha256
 from ai_triage import review
@@ -22,6 +22,37 @@ class WorkbenchTests(unittest.TestCase):
   if not root.exists():return
   record=scan_one(root)
   self.assertTrue(any(z.get('ftyp_offset')==540160 for z in record['mdat']))
+
+ def test_zip_backup_e2e(self):
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);src=root/'raw.zip'
+   with zipfile.ZipFile(src,'w') as z:z.writestr('record/20220621/08/20.mp4',b'\x00'*1024)
+   h=sha256(src);e=Engine();j=e.create(str(src),str(root/'reports'))
+   for _ in range(120):
+    if j.status not in ('queued','running'):break
+    time.sleep(.2)
+   self.assertEqual(j.status,'completed',j.error)
+   self.assertEqual(j.results['source_count'],1)
+   self.assertEqual(j.results['timeline']['number_matched'],1)
+   self.assertEqual(sha256(src),h)
+ def test_image_only_e2e(self):
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);src=root/'card.img'
+   src.write_bytes(bytes(512)+struct.pack('>I',24)+b'ftyp'+b'isom0000isomavc1'+bytes(3000))
+   h=sha256(src);e=Engine();j=e.create(str(src),str(root/'reports'))
+   for _ in range(120):
+    if j.status not in ('queued','running'):break
+    time.sleep(.2)
+   self.assertEqual(j.status,'completed',j.error)
+   self.assertEqual(j.results['source_count'],0)
+   self.assertGreaterEqual(j.results['image']['ftyp_count'],1)
+   self.assertEqual(sha256(src),h)
+ def test_zip_traversal_rejected(self):
+  from workbench import extract_zip_media
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);p=root/'bad.zip';tmp=root/'scratch';tmp.mkdir()
+   with zipfile.ZipFile(p,'w') as z:z.writestr('../evil.mp4',b'bad')
+   with self.assertRaises(ValueError):extract_zip_media(p,tmp)
 
  def test_opt_in_is_mandatory(self):
   with self.assertRaises(PermissionError):review(Path('.'),explicit_consent=False)
