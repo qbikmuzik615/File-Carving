@@ -1,41 +1,35 @@
-name: Weekly public forensic research radar
+# Read-only public metadata collection; never access or commit case evidence.
+name: Weekly forensic research radar - read only
 on:
   schedule:
     - cron: '37 10 * * 1'
   workflow_dispatch:
-  push:
-    branches: [master]
-    paths:
-      - '.github/workflows/forensic-research-weekly.yml'
-      - 'forensic-workbench/scripts/research_radar.py'
-      - 'forensic-workbench/research/sources.json'
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: public-forensic-research-radar
   cancel-in-progress: false
 jobs:
   snapshot:
-    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.11'
-      - name: Collect public-only GitHub project metadata
+      - name: Collect public repository metadata only
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 forensic-workbench/scripts/research_radar.py
-      - name: Commit dated source radar to this repository
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add forensic-workbench/research/radar/*.json
-          if git diff --cached --quiet; then
-            echo 'No changes to commit'
-            exit 0
-          fi
-          git commit -m 'chore(research): public source metadata snapshot'
-          git push origin HEAD:master
+      - name: Store JSON as GitHub Actions artifact; no push
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: forensic-public-radar
+          path: forensic-workbench/research/radar/*.json
+          if-no-files-found: error
+          retention-days: 30
